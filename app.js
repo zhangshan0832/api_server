@@ -3,6 +3,7 @@ const cors = require('cors')
 const app = express()
 const userRouter = require('./router/user');
 const Joi = require("joi");
+const expressJWT = require('express-jwt')
 app.use(cors())
 app.use(express.urlencoded({ extended: false }))
 app.use(express.json())
@@ -18,13 +19,15 @@ app.use((req, res, next) => {
     }
     next()
 })
-
+app.use(expressJWT({ secret: config.jwtSecretKey ,algorithms:['HS256']}).unless({ path: [/^\/api/] }))
 app.use('/api', userRouter)
 
 // 错误中间件
 app.use((err, req, res, next) => {
     // 数据验证
     if (err instanceof Joi.ValidationError) return res.cc(err)
+    // 身份认证错误
+    if (err.name === 'UnauthorizedError') return res.cc('身份认证失败！')
     // 验证失败
     res.cc(err)
 })
